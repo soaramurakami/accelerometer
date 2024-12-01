@@ -1,8 +1,10 @@
 let recording = false;
 let data = []; // 記録データ
 let watchId = null; // GPS用
+let latestMotion = { x: null, y: null, z: null }; // 最新の加速度データ
+let latestPosition = { latitude: null, longitude: null, speed: null }; // 最新のGPSデータ
+let timerId = null; // タイマーID
 
-// 計測開始ボタンの処理
 document.getElementById('start-btn').addEventListener('click', () => {
   if (recording) return;
   recording = true;
@@ -18,39 +20,52 @@ document.getElementById('start-btn').addEventListener('click', () => {
   watchId = navigator.geolocation.watchPosition(handlePosition, handleError, {
     enableHighAccuracy: true,
   });
+
+  // タイマーでデータを統合し記録
+  timerId = setInterval(recordData, 100); // 100ms間隔
 });
 
 function handleMotion(event) {
   const { x, y, z } = event.accelerationIncludingGravity || {};
-  const timestamp = new Date().toISOString();
-
-  // データを記録
-  data.push({ timestamp, x, y, z });
-
-  // 値を表示
-  document.getElementById('acc-x').textContent = x?.toFixed(2) || '-';
-  document.getElementById('acc-y').textContent = y?.toFixed(2) || '-';
-  document.getElementById('acc-z').textContent = z?.toFixed(2) || '-';
+  latestMotion = { x: x || 0, y: y || 0, z: z || 0 }; // 最新の加速度データを保持
 }
 
 function handlePosition(position) {
   const { latitude, longitude, speed } = position.coords;
-  const timestamp = new Date().toISOString();
-
-  // データを記録
-  data.push({ timestamp, latitude, longitude, speed });
-
-  // 値を表示
-  document.getElementById('gps-latitude').textContent = latitude?.toFixed(6) || '-';
-  document.getElementById('gps-longitude').textContent = longitude?.toFixed(6) || '-';
-  document.getElementById('gps-speed').textContent = speed ? speed.toFixed(2) + ' m/s' : '-';
+  latestPosition = {
+    latitude: latitude || 0,
+    longitude: longitude || 0,
+    speed: speed || 0
+  }; // 最新のGPSデータを保持
 }
 
 function handleError(error) {
   console.error('GPS取得エラー:', error.message);
 }
 
-// 計測終了ボタンの処理
+// タイマーで統合データを記録
+function recordData() {
+  const timestamp = getJSTTimestamp(); // 日本時間
+  const record = {
+    timestamp,
+    x: latestMotion.x,
+    y: latestMotion.y,
+    z: latestMotion.z,
+    latitude: latestPosition.latitude,
+    longitude: latestPosition.longitude,
+    speed: latestPosition.speed
+  };
+  data.push(record);
+
+  // 表示更新
+  document.getElementById('acc-x').textContent = record.x.toFixed(2);
+  document.getElementById('acc-y').textContent = record.y.toFixed(2);
+  document.getElementById('acc-z').textContent = record.z.toFixed(2);
+  document.getElementById('gps-latitude').textContent = record.latitude.toFixed(6);
+  document.getElementById('gps-longitude').textContent = record.longitude.toFixed(6);
+  document.getElementById('gps-speed').textContent = record.speed.toFixed(2) + ' m/s';
+}
+
 document.getElementById('stop-btn').addEventListener('click', () => {
   if (!recording) return;
   recording = false;
@@ -62,57 +77,17 @@ document.getElementById('stop-btn').addEventListener('click', () => {
   window.removeEventListener('devicemotion', handleMotion);
   if (watchId) navigator.geolocation.clearWatch(watchId);
 
+  // タイマー停止
+  if (timerId) clearInterval(timerId);
+
   // データをCSVとGPXで保存
   exportToCSV(data);
   exportToGPX(data);
 });
 
-function exportToCSV(data) {
-  const csv = ['timestamp,x,y,z,latitude,longitude,speed'];
-  data.forEach(row => {
-    csv.push(
-      `${row.timestamp || ''},${row.x || ''},${row.y || ''},${row.z || ''},${row.latitude || ''},${row.longitude || ''},${row.speed || ''}`
-    );
-  });
-
-  const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'data.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-function exportToGPX(data) {
-  const gpxHeader = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="CustomApp" xmlns="http://www.topografix.com/GPX/1/1">
-  <trk>
-    <trkseg>`;
-  const gpxFooter = `
-    </trkseg>
-  </trk>
-</gpx>`;
-
-  const gpxBody = data
-    .filter(row => row.latitude && row.longitude)
-    .map(
-      row =>
-        `<trkpt lat="${row.latitude}" lon="${row.longitude}">
-          <time>${row.timestamp}</time>
-          ${row.speed ? `<speed>${row.speed}</speed>` : ''}
-        </trkpt>`
-    )
-    .join('\n');
-
-  const gpx = gpxHeader + gpxBody + gpxFooter;
-  const blob = new Blob([gpx], { type: 'application/gpx+xml' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'data.gpx';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+// 日本時間に変換する関数
+function getJSTTimestamp() {
+  const now = new Date();
+  now.setHours(now.getHours() + 9); // UTC+9に変換
+  return now.toISOString().replace('Z', '+09:00'); // タイムゾーンを明示
 }
