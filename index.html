@@ -1,123 +1,29 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GPSと加速度情報の取得と表示</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #f4f4f9;
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-        .info-box {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin: 10px 0;
-            border-radius: 5px;
-        }
-        .info-box h3 {
-            margin-top: 0;
-        }
-        .info-box p {
-            margin: 5px 0;
-        }
-        button {
-            display: block;
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            font-size: 18px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        button:disabled {
-            background-color: #ccc;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>データ計測</title>
 </head>
 <body>
-    <h1>加速度情報とGPS情報の取得と表示</h1>
+  <h1>加速度とGPS情報の記録</h1>
+  <button id="start-btn">計測開始</button>
+  <button id="stop-btn" disabled>計測終了</button>
+  <div id="status">状態: 停止中</div>
 
-    <div class="info-box">
-        <h3>加速度情報</h3>
-        <p><strong>X軸:</strong> <span id="accX">-</span> m/s²</p>
-        <p><strong>Y軸:</strong> <span id="accY">-</span> m/s²</p>
-        <p><strong>Z軸:</strong> <span id="accZ">-</span> m/s²</p>
-    </div>
-
-    <div class="info-box">
-        <h3>GPS情報</h3>
-        <p><strong>緯度:</strong> <span id="latitude">-</span></p>
-        <p><strong>経度:</strong> <span id="longitude">-</span></p>
-    </div>
-
-    <button id="startBtn">データ収集開始</button>
-    <button id="stopBtn" disabled>データ収集停止</button>
-
-    <script>
-        let accelerometer;
-        let watchId;
-
-        // 加速度情報の取得
-        function startAccelerometer() {
-            if (window.DeviceMotionEvent) {
-                window.addEventListener("devicemotion", (event) => {
-                    const acceleration = event.accelerationIncludingGravity;
-                    // ページ上に加速度情報を表示
-                    document.getElementById("accX").textContent = acceleration.x.toFixed(2);
-                    document.getElementById("accY").textContent = acceleration.y.toFixed(2);
-                    document.getElementById("accZ").textContent = acceleration.z.toFixed(2);
-                }, false);
-            } else {
-                alert("加速度センサーはサポートされていません。");
-            }
-        }
-
-        // GPS情報を取得し続ける
-        function startGeolocation() {
-            if (navigator.geolocation) {
-                watchId = navigator.geolocation.watchPosition((position) => {
-                    const latitude = position.coords.latitude;
-                    const longitude = position.coords.longitude;
-                    // ページ上にGPS情報を表示
-                    document.getElementById("latitude").textContent = latitude.toFixed(6);
-                    document.getElementById("longitude").textContent = longitude.toFixed(6);
-                }, (error) => {
-                    console.error("GPS情報の取得エラー:", error);
-                });
-            } else {
-                alert("GPS情報はサポートされていません。");
-            }
-        }
-
-        // データ収集開始
-        document.getElementById("startBtn").addEventListener('click', () => {
-            startAccelerometer();
-            startGeolocation();
-            document.getElementById("startBtn").disabled = true;
-            document.getElementById("stopBtn").disabled = false;
-        });
-
-        // データ収集停止
-        document.getElementById("stopBtn").addEventListener('click', () => {
-            if (accelerometer) {
-                window.removeEventListener("devicemotion", accelerometer);
-            }
-            if (watchId) {
-                navigator.geolocation.clearWatch(watchId);
-            }
-            document.getElementById("startBtn").disabled = false;
-            document.getElementById("stopBtn").disabled = true;
-        });
-    </script>
+  <h2>取得データ</h2>
+  <div>
+    <p>加速度:</p>
+    <p>X: <span id="acc-x">-</span></p>
+    <p>Y: <span id="acc-y">-</span></p>
+    <p>Z: <span id="acc-z">-</span></p>
+  </div>
+  <div>
+    <p>GPS情報:</p>
+    <p>緯度: <span id="gps-latitude">-</span></p>
+    <p>経度: <span id="gps-longitude">-</span></p>
+    <p>速度: <span id="gps-speed">-</span></p>
+  </div>
+  <script src="script.js"></script>
 </body>
 </html>
