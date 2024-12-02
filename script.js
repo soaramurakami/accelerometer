@@ -66,34 +66,25 @@ function recordData() {
   document.getElementById('gps-speed').textContent = record.speed.toFixed(2) + ' m/s';
 }
 
-document.getElementById('stop-btn').addEventListener('click', () => {
-  if (!recording) return;
-  recording = false;
-  document.getElementById('status').textContent = '状態: 停止中';
-  document.getElementById('start-btn').disabled = false;
-  document.getElementById('stop-btn').disabled = true;
-
-  // イベントリスナーとGPSウォッチを解除
-  window.removeEventListener('devicemotion', handleMotion);
-  if (watchId) navigator.geolocation.clearWatch(watchId);
-
-  // タイマー停止
-  if (timerId) clearInterval(timerId);
-
-  // データをCSVとGPXで保存
-  exportToCSV(data);
-  exportToGPX(data);
-});
-
-// 日本時間に変換する関数
 function getJSTTimestamp() {
   const now = new Date();
   now.setHours(now.getHours() + 9); // UTC+9に変換
   return now.toISOString().replace('Z', '+09:00'); // タイムゾーンを明示
 }
 
+function generateFilename(extension) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hour = String(now.getHours()).padStart(2, '0');
+  const minute = String(now.getMinutes()).padStart(2, '0');
+  return `${year}${month}${day}${hour}${minute}.${extension}`;
+}
+
 // CSV形式でデータを保存
 function exportToCSV(data) {
+  const filename = generateFilename('csv');
   const csv = ['timestamp,x,y,z,latitude,longitude,speed'];
   data.forEach(row => {
     csv.push(
@@ -105,7 +96,7 @@ function exportToCSV(data) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'data.csv'; // ダウンロードファイル名
+  a.download = filename; // ファイル名を設定
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -113,6 +104,7 @@ function exportToCSV(data) {
 
 // GPX形式でデータを保存
 function exportToGPX(data) {
+  const filename = generateFilename('gpx');
   const gpxHeader = `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="CustomApp" xmlns="http://www.topografix.com/GPX/1/1">
   <trk>
@@ -137,7 +129,7 @@ function exportToGPX(data) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'data.gpx'; // ダウンロードファイル名
+  a.download = filename; // ファイル名を設定
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
