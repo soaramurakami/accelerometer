@@ -66,6 +66,26 @@ function recordData() {
   document.getElementById('gps-speed').textContent = record.speed.toFixed(2) + ' m/s';
 }
 
+document.getElementById('stop-btn').addEventListener('click', () => {
+  if (!recording) return;
+  recording = false;
+  document.getElementById('status').textContent = '状態: 停止中';
+  document.getElementById('start-btn').disabled = false;
+  document.getElementById('stop-btn').disabled = true;
+
+  // イベントリスナーとGPSウォッチを解除
+  window.removeEventListener('devicemotion', handleMotion);
+  if (watchId) navigator.geolocation.clearWatch(watchId);
+
+  // タイマー停止
+  if (timerId) clearInterval(timerId);
+
+  // データをCSVとGPXで保存
+  exportToCSV(data);
+  exportToGPX(data);
+});
+
+// 日本時間に変換する関数
 function getJSTTimestamp() {
   const now = new Date();
   now.setHours(now.getHours() + 9); // UTC+9に変換
@@ -85,7 +105,7 @@ function exportToCSV(data) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'data.csv';
+  a.download = 'data.csv'; // ダウンロードファイル名
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -103,7 +123,7 @@ function exportToGPX(data) {
 </gpx>`;
 
   const gpxBody = data
-    .filter(row => row.latitude && row.longitude)
+    .filter(row => row.latitude && row.longitude) // GPSデータがある場合のみ
     .map(row => 
       `<trkpt lat="${row.latitude}" lon="${row.longitude}">
         <time>${row.timestamp}</time>
@@ -117,8 +137,28 @@ function exportToGPX(data) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'data.gpx';
+  a.download = 'data.gpx'; // ダウンロードファイル名
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
 }
+
+// 計測終了時の処理
+document.getElementById('stop-btn').addEventListener('click', () => {
+  if (!recording) return;
+  recording = false;
+  document.getElementById('status').textContent = '状態: 停止中';
+  document.getElementById('start-btn').disabled = false;
+  document.getElementById('stop-btn').disabled = true;
+
+  // イベントリスナーとGPSウォッチを解除
+  window.removeEventListener('devicemotion', handleMotion);
+  if (watchId) navigator.geolocation.clearWatch(watchId);
+
+  // タイマー停止
+  if (timerId) clearInterval(timerId);
+
+  // データをCSVとGPXで保存
+  exportToCSV(data);
+  exportToGPX(data);
+});
