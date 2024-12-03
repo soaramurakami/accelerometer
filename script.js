@@ -1,8 +1,8 @@
 let recording = false;
 let data = []; // 記録データ
 let watchId = null; // GPS用
-let latestMotion = { x: null, y: null, z: null }; // 最新の加速度データ
-let latestPosition = { latitude: null, longitude: null, speed: null }; // 最新のGPSデータ
+let latestMotion = { x: 0, y: 0, z: 0 }; // 最新の加速度データ
+let latestPosition = { latitude: 0, longitude: 0, speed: 0 }; // 最新のGPSデータ
 let timerId = null; // タイマーID
 
 document.getElementById('start-btn').addEventListener('click', () => {
@@ -27,16 +27,20 @@ document.getElementById('start-btn').addEventListener('click', () => {
 
 function handleMotion(event) {
   const { x, y, z } = event.accelerationIncludingGravity || {};
-  latestMotion = { x: x || 0, y: y || 0, z: z || 0 }; // 最新の加速度データを保持
+  latestMotion = {
+    x: x ?? 0, // データがなければ 0
+    y: y ?? 0,
+    z: z ?? 0
+  };
 }
 
 function handlePosition(position) {
   const { latitude, longitude, speed } = position.coords;
   latestPosition = {
-    latitude: latitude || 0,
-    longitude: longitude || 0,
-    speed: speed || 0
-  }; // 最新のGPSデータを保持
+    latitude: latitude ?? 0, // データがなければ 0
+    longitude: longitude ?? 0,
+    speed: speed ?? 0
+  };
 }
 
 function handleError(error) {
@@ -48,12 +52,12 @@ function recordData() {
   const timestamp = getJSTTimestamp(); // 日本時間
   const record = {
     timestamp,
-    x: latestMotion.x,
-    y: latestMotion.y,
-    z: latestMotion.z,
-    latitude: latestPosition.latitude,
-    longitude: latestPosition.longitude,
-    speed: latestPosition.speed
+    x: latestMotion.x ?? 0, // nullまたはundefinedなら 0
+    y: latestMotion.y ?? 0,
+    z: latestMotion.z ?? 0,
+    latitude: latestPosition.latitude ?? 0,
+    longitude: latestPosition.longitude ?? 0,
+    speed: latestPosition.speed ?? 0
   };
   data.push(record);
 
@@ -88,7 +92,7 @@ function exportToCSV(data) {
   const csv = ['timestamp,x,y,z,latitude,longitude,speed'];
   data.forEach(row => {
     csv.push(
-      `${row.timestamp},${row.x || ''},${row.y || ''},${row.z || ''},${row.latitude || ''},${row.longitude || ''},${row.speed || ''}`
+      `${row.timestamp},${row.x},${row.y},${row.z},${row.latitude},${row.longitude},${row.speed}`
     );
   });
 
@@ -115,11 +119,10 @@ function exportToGPX(data) {
 </gpx>`;
 
   const gpxBody = data
-    .filter(row => row.latitude && row.longitude) // GPSデータがある場合のみ
     .map(row => 
       `<trkpt lat="${row.latitude}" lon="${row.longitude}">
         <time>${row.timestamp}</time>
-        ${row.speed ? `<speed>${row.speed}</speed>` : ''}
+        <speed>${row.speed}</speed>
       </trkpt>`
     )
     .join('\n');
