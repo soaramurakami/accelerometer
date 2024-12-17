@@ -22,7 +22,7 @@ document.getElementById('start-btn').addEventListener('click', () => {
   });
 
   // タイマーでデータを統合し記録
-  timerId = setInterval(recordData, 100); // 100ms間隔
+  timerId = setInterval(recordData, 10000); // 10000ms間隔
 });
 
 function handleMotion(event) {
